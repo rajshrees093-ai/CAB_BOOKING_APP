@@ -10,12 +10,14 @@ export async function POST() {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // Check if user already exists
-    const { data: existingUser } = await supabase
+    // SAFE user check
+    const { data: existingUser, error: fetchError } = await supabase
       .from("users")
       .select("*")
       .eq("clerk_id", userId)
-      .single();
+      .maybeSingle();   // ⭐ important change
+
+    if (fetchError) throw fetchError;
 
     if (existingUser) {
       return NextResponse.json({ message: "User already exists" });
@@ -33,7 +35,7 @@ export async function POST() {
 
     return NextResponse.json({ message: "User synced", data });
   } catch (err) {
-    console.error(err);
+    console.error("SYNC ERROR:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
