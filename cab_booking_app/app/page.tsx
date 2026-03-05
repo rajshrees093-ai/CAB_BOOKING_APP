@@ -1,28 +1,27 @@
 "use client";
 
+import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from "@clerk/nextjs";
 
 export default function Home() {
-  const { isSignedIn } = useUser();
+  const router = useRouter();
 
   useEffect(() => {
-    if (isSignedIn) {
-      fetch("/api/users/sync", {
-        method: "POST",
-      });
-    }
-  }, [isSignedIn]);
+    router.push("/dashboard");
+  }, []);
 
   return (
-    <main className="flex items-center justify-center h-screen gap-4">
+    <main className="flex items-center justify-center h-screen">
+
       <SignedOut>
         <SignInButton />
       </SignedOut>
 
       <SignedIn>
-        <UserButton />
+        Redirecting...
       </SignedIn>
+
     </main>
   );
 }
