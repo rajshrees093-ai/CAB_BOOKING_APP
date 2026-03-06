@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { UserButton } from "@clerk/nextjs";
 import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
+import { supabase } from "@/lib/supabase";
 
 export default function Dashboard() {
 
@@ -15,6 +16,9 @@ export default function Dashboard() {
 
   const [pickupMarker,setPickupMarker] = useState<any>(null);
   const [dropMarker,setDropMarker] = useState<any>(null);
+
+  const [rideStatus,setRideStatus] = useState("");
+  const [notification,setNotification] = useState("");
 
   const mapContainerStyle = {
     width: "100%",
@@ -39,6 +43,50 @@ export default function Dashboard() {
     }
 
     getProfile();
+
+  },[]);
+
+
+  useEffect(()=>{
+
+    const channel = supabase
+      .channel("rides-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "rides",
+        },
+        (payload:any)=>{
+
+          const updatedRide = payload.new;
+
+          setRideStatus(updatedRide.status);
+
+          if(updatedRide.status === "accepted"){
+            setNotification("🚕 Driver accepted your ride");
+          }
+
+          if(updatedRide.status === "arriving"){
+            setNotification("🚗 Driver is arriving");
+          }
+
+          if(updatedRide.status === "started"){
+            setNotification("🛣 Ride started");
+          }
+
+          if(updatedRide.status === "completed"){
+            setNotification("✅ Ride completed");
+          }
+
+        }
+      )
+      .subscribe();
+
+    return ()=>{
+      supabase.removeChannel(channel);
+    };
 
   },[]);
 
@@ -72,7 +120,8 @@ export default function Dashboard() {
       })
     });
 
-    alert("Ride requested successfully 🚖");
+    setRideStatus("requested");
+    setNotification("🚖 Ride requested. Waiting for driver...");
 
   }
 
@@ -106,6 +155,22 @@ export default function Dashboard() {
         <h1 className="text-xl font-bold">Cab Booking Dashboard</h1>
         <UserButton />
       </div>
+
+
+      {/* Notification */}
+      {notification && (
+        <div className="max-w-xl mx-auto mt-6 bg-green-500 text-white p-4 rounded shadow">
+          {notification}
+        </div>
+      )}
+
+
+      {/* Ride Status */}
+      {rideStatus && (
+        <div className="max-w-xl mx-auto mt-4 bg-white p-4 rounded shadow">
+          <b>Ride Status:</b> {rideStatus}
+        </div>
+      )}
 
 
       {/* Profile Card */}

@@ -1,6 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 
+// Supabase environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create Supabase client
+export const supabase = createClient(
+  supabaseUrl,
+  supabaseAnonKey,
+  {
+    realtime: {
+      params: {
+        eventsPerSecond: 10,
+      },
+    },
+  }
+);
