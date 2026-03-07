@@ -20,9 +20,6 @@ export default function Dashboard() {
   const [rideStatus,setRideStatus] = useState("");
   const [notification,setNotification] = useState("");
 
-  // NEW STATE
-  const [rideId,setRideId] = useState<string | null>(null);
-
   const mapContainerStyle = {
     width: "100%",
     height: "400px",
@@ -50,32 +47,8 @@ export default function Dashboard() {
   },[]);
 
 
-
-  // GET LATEST RIDE FOR CURRENT USER
-  useEffect(()=>{
-
-    async function getLatestRide(){
-
-      const res = await fetch("/api/rides/latest");
-      const ride = await res.json();
-
-      if(ride?.id){
-        setRideId(ride.id);
-        setRideStatus(ride.status);
-      }
-
-    }
-
-    getLatestRide();
-
-  },[]);
-
-
-
   // REALTIME LISTENER
   useEffect(()=>{
-
-    if(!rideId) return;
 
     const channel = supabase
       .channel("rides-realtime")
@@ -85,7 +58,6 @@ export default function Dashboard() {
           event: "UPDATE",
           schema: "public",
           table: "rides",
-          filter: `id=eq.${rideId}`,
         },
         (payload:any)=>{
 
@@ -117,7 +89,45 @@ export default function Dashboard() {
       supabase.removeChannel(channel);
     };
 
-  },[rideId]);
+  },[]);
+
+
+
+  // NEW: POLLING SYSTEM (checks ride status every 3 seconds)
+  useEffect(() => {
+
+    const interval = setInterval(async () => {
+
+      const res = await fetch("/api/rides/latest");
+      const ride = await res.json();
+
+      if(ride?.status){
+
+        setRideStatus(ride.status);
+
+        if(ride.status === "accepted"){
+          setNotification("🚕 Driver accepted your ride");
+        }
+
+        if(ride.status === "arriving"){
+          setNotification("🚗 Driver is arriving");
+        }
+
+        if(ride.status === "started"){
+          setNotification("🛣 Ride started");
+        }
+
+        if(ride.status === "completed"){
+          setNotification("✅ Ride completed");
+        }
+
+      }
+
+    },3000);
+
+    return () => clearInterval(interval);
+
+  },[]);
 
 
 
@@ -139,7 +149,7 @@ export default function Dashboard() {
 
   async function requestRide(){
 
-    const res = await fetch("/api/rides/create",{
+    await fetch("/api/rides/create",{
       method:"POST",
       headers:{
         "Content-Type":"application/json"
@@ -150,12 +160,6 @@ export default function Dashboard() {
         ride_type:rideType
       })
     });
-
-    const ride = await res.json();
-
-    if(ride?.id){
-      setRideId(ride.id);
-    }
 
     setRideStatus("requested");
     setNotification("🚖 Ride requested. Waiting for driver...");
