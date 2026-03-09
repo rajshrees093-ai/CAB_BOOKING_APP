@@ -20,6 +20,9 @@ export default function Dashboard() {
   const [rideStatus,setRideStatus] = useState("");
   const [notification,setNotification] = useState("");
 
+  const [rideId,setRideId] = useState("");
+  const [fare,setFare] = useState(200);
+
   const mapContainerStyle = {
     width: "100%",
     height: "400px",
@@ -29,6 +32,8 @@ export default function Dashboard() {
     lat: 25.5941,
     lng: 85.1376,
   };
+
+
 
   useEffect(()=>{
 
@@ -45,6 +50,7 @@ export default function Dashboard() {
     getProfile();
 
   },[]);
+
 
 
   // REALTIME LISTENER
@@ -64,6 +70,7 @@ export default function Dashboard() {
           const updatedRide = payload.new;
 
           setRideStatus(updatedRide.status);
+          setRideId(updatedRide.id);
 
           if(updatedRide.status === "accepted"){
             setNotification("🚕 Driver accepted your ride");
@@ -93,6 +100,7 @@ export default function Dashboard() {
 
 
 
+
   // NEW: POLLING SYSTEM (checks ride status every 3 seconds)
   useEffect(() => {
 
@@ -104,6 +112,7 @@ export default function Dashboard() {
       if(ride?.status){
 
         setRideStatus(ride.status);
+        setRideId(ride.id);
 
         if(ride.status === "accepted"){
           setNotification("🚕 Driver accepted your ride");
@@ -131,6 +140,7 @@ export default function Dashboard() {
 
 
 
+
   async function updateProfile(){
 
     await fetch("/api/users/update",{
@@ -144,6 +154,7 @@ export default function Dashboard() {
     alert("Profile updated successfully 🚕");
 
   }
+
 
 
 
@@ -165,6 +176,29 @@ export default function Dashboard() {
     setNotification("🚖 Ride requested. Waiting for driver...");
 
   }
+
+
+
+  // STRIPE PAYMENT FUNCTION
+  async function payForRide(){
+
+    const res = await fetch("/api/payment/create",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        rideId: rideId,
+        amount: fare
+      })
+    });
+
+    const data = await res.json();
+
+    window.location.href = data.url;
+
+  }
+
 
 
 
@@ -214,6 +248,30 @@ export default function Dashboard() {
           <b>Ride Status:</b> {rideStatus}
         </div>
       )}
+
+
+      {/* PAYMENT SECTION */}
+      {rideStatus === "completed" && (
+        <div className="max-w-xl mx-auto mt-4 bg-white p-6 rounded shadow">
+
+          <h2 className="text-lg font-semibold mb-3">
+            Ride Completed
+          </h2>
+
+          <p className="mb-3">
+            Fare Amount: ₹{fare}
+          </p>
+
+          <button
+            onClick={payForRide}
+            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+          >
+            Pay for Ride
+          </button>
+
+        </div>
+      )}
+
 
 
       {/* Profile Card */}
