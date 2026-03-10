@@ -18,14 +18,14 @@ export default function RideHistoryPage() {
 
   if (loading) {
     return (
-      <div className="p-10 text-center text-lg">
-        Loading ride history...
+      <div className="flex justify-center items-center h-screen text-xl">
+        Loading Ride History...
       </div>
     );
   }
 
   return (
-    <div className="p-10">
+    <div className="max-w-3xl mx-auto p-8">
 
       <h1 className="text-3xl font-bold mb-6">
         Ride History
@@ -35,36 +35,43 @@ export default function RideHistoryPage() {
         <p>No rides found</p>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-5">
 
         {rides.map((ride) => (
           <div
             key={ride.id}
-            className="border rounded-lg p-5 shadow-sm bg-white"
+            className="bg-white shadow-md rounded-lg p-5 border"
           >
 
-            <div className="flex justify-between mb-2">
-              <p className="font-semibold">
-                {ride.pickup_location} → {ride.drop_location}
-              </p>
+            <div className="flex justify-between items-center">
 
-              <p className="text-green-600 font-bold">
-                ₹{ride.fare}
-              </p>
-            </div>
+              <div>
+                <p className="font-semibold text-lg">
+                  {ride.pickup_location} → {ride.drop_location}
+                </p>
 
-            <div className="text-sm text-gray-600">
-              Status: {ride.status}
-            </div>
+                <p className="text-gray-500 text-sm">
+                  {new Date(ride.created_at).toLocaleString()}
+                </p>
 
-            <div className="text-sm text-gray-500">
-              Date: {new Date(ride.created_at).toLocaleString()}
+                <p className="text-sm mt-1">
+                  Status: <span className="font-medium">{ride.status}</span>
+                </p>
+              </div>
+
+              <div className="text-right">
+                <p className="text-xl font-bold text-green-600">
+                  ₹{ride.fare}
+                </p>
+              </div>
+
             </div>
 
           </div>
         ))}
 
       </div>
+
     </div>
   );
 }
