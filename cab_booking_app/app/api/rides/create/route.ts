@@ -12,7 +12,9 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { pickup, drop } = body;
+
+    // FIX: include ride_type
+    const { pickup, drop, ride_type } = body;
 
     // get uuid from users table
     const { data: user, error: userError } = await supabase
@@ -25,14 +27,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 400 });
     }
 
-    const { data, error } = await supabase.from("rides").insert({
-      rider_id: userId,
-      pickup_location: pickup,
-      drop_location: drop,
-      ride_type: ride_type,
-      fare: 200,
-      status: "requested"
-    });
+    // insert ride
+    const { data, error } = await supabase
+      .from("rides")
+      .insert({
+        rider_id: user.id,   // FIX: use supabase uuid
+        pickup_location: pickup,
+        drop_location: drop,
+        ride_type: ride_type,
+        fare: 200,
+        status: "requested"
+      })
+      .select();
+
     if (error) {
       console.log(error);
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -48,5 +55,6 @@ export async function POST(req: Request) {
       { error: "Server error" },
       { status: 500 }
     );
+
   }
 }
