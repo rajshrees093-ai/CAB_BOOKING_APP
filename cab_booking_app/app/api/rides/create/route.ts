@@ -25,18 +25,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 400 });
     }
 
-    const { data, error } = await supabase
-      .from("rides")
-      .insert([
-        {
-          rider_id: user.id,
-          pickup_location: pickup,
-          drop_location: drop,
-          status: "requested",
-          fare: 0
-        }
-      ]);
-
+    const { data, error } = await supabase.from("rides").insert({
+      rider_id: userId,
+      pickup_location: pickup,
+      drop_location: drop,
+      ride_type: ride_type,
+      fare: 200,
+      status: "requested"
+    });
     if (error) {
       console.log(error);
       return NextResponse.json({ error: error.message }, { status: 500 });
