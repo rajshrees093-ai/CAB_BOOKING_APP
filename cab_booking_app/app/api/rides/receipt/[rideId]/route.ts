@@ -20,7 +20,9 @@ export async function GET(
 
     const rideId = params.rideId;
 
-    // get supabase user uuid
+    console.log("Ride ID from URL:", rideId);
+
+    // STEP 1: Get Supabase user id from users table
     const { data: user, error: userError } = await supabase
       .from("users")
       .select("id")
@@ -28,28 +30,33 @@ export async function GET(
       .single();
 
     if (userError || !user) {
+      console.log("User fetch error:", userError);
       return NextResponse.json(
         { error: "User not found" },
         { status: 400 }
       );
     }
 
-    // fetch ride belonging to this user
-    const { data: ride, error } = await supabase
+    console.log("Supabase user id:", user.id);
+
+    // STEP 2: Fetch ride
+    const { data: ride, error: rideError } = await supabase
       .from("rides")
       .select("*")
       .eq("id", rideId)
-      .eq("rider_id", user.id)
-      .single();
+      .maybeSingle();
 
-    if (error || !ride) {
+    console.log("Ride data:", ride);
+    console.log("Ride error:", rideError);
+
+    if (!ride) {
       return NextResponse.json(
         { error: "Ride not found" },
         { status: 404 }
       );
     }
 
-    // generate pdf
+    // STEP 3: Generate PDF
     const doc = new PDFDocument();
 
     const chunks: Buffer[] = [];
@@ -84,7 +91,7 @@ export async function GET(
 
   } catch (error) {
 
-    console.log(error);
+    console.log("Server error:", error);
 
     return NextResponse.json(
       { error: "Server error" },
