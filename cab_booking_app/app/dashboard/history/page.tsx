@@ -16,6 +16,10 @@ export default function RideHistoryPage() {
       });
   }, []);
 
+  const downloadReceipt = (rideId: string) => {
+    window.open(`/api/rides/receipt/${rideId}`, "_blank");
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen text-xl">
@@ -32,7 +36,7 @@ export default function RideHistoryPage() {
       </h1>
 
       {rides.length === 0 && (
-        <p>No rides found</p>
+        <p className="text-gray-500">No rides found</p>
       )}
 
       <div className="space-y-5">
@@ -46,6 +50,7 @@ export default function RideHistoryPage() {
             <div className="flex justify-between items-center">
 
               <div>
+
                 <p className="font-semibold text-lg">
                   {ride.pickup_location} → {ride.drop_location}
                 </p>
@@ -55,14 +60,41 @@ export default function RideHistoryPage() {
                 </p>
 
                 <p className="text-sm mt-1">
-                  Status: <span className="font-medium">{ride.status}</span>
+                  Status:
+                  <span
+                    className={`ml-1 font-medium ${
+                      ride.status === "completed"
+                        ? "text-green-600"
+                        : ride.status === "accepted"
+                        ? "text-blue-600"
+                        : "text-yellow-600"
+                    }`}
+                  >
+                    {ride.status}
+                  </span>
                 </p>
+
+                <p className="text-xs text-gray-400 mt-1">
+                  Ride ID: {ride.id}
+                </p>
+
               </div>
 
               <div className="text-right">
+
                 <p className="text-xl font-bold text-green-600">
                   ₹{ride.fare}
                 </p>
+
+                {/* Download Receipt Button */}
+
+                <button
+                  onClick={() => downloadReceipt(ride.id)}
+                  className="mt-2 bg-black text-white px-3 py-1 rounded text-sm hover:bg-gray-800"
+                >
+                  Download Receipt
+                </button>
+
               </div>
 
             </div>
