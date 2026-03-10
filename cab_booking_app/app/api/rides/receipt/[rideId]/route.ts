@@ -20,34 +20,17 @@ export async function GET(
 
     const rideId = params.rideId;
 
-    console.log("Ride ID from URL:", rideId);
+    console.log("Looking for ride:", rideId);
 
-    // STEP 1: Get Supabase user id from users table
-    const { data: user, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
-
-    if (userError || !user) {
-      console.log("User fetch error:", userError);
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 400 }
-      );
-    }
-
-    console.log("Supabase user id:", user.id);
-
-    // STEP 2: Fetch ride
-    const { data: ride, error: rideError } = await supabase
+    // Fetch ride directly
+    const { data: ride, error } = await supabase
       .from("rides")
       .select("*")
       .eq("id", rideId)
       .maybeSingle();
 
-    console.log("Ride data:", ride);
-    console.log("Ride error:", rideError);
+    console.log("Ride result:", ride);
+    console.log("Ride error:", error);
 
     if (!ride) {
       return NextResponse.json(
@@ -56,7 +39,7 @@ export async function GET(
       );
     }
 
-    // STEP 3: Generate PDF
+    // Create PDF
     const doc = new PDFDocument();
 
     const chunks: Buffer[] = [];
