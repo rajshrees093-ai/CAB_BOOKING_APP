@@ -20,11 +20,26 @@ export async function GET(
 
     const rideId = params.rideId;
 
-    // get ride
+    // get supabase user uuid
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("clerk_id", userId)
+      .single();
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 400 }
+      );
+    }
+
+    // fetch ride belonging to this user
     const { data: ride, error } = await supabase
       .from("rides")
       .select("*")
       .eq("id", rideId)
+      .eq("rider_id", user.id)
       .single();
 
     if (error || !ride) {
@@ -37,11 +52,9 @@ export async function GET(
     // generate pdf
     const doc = new PDFDocument();
 
-    const chunks: any[] = [];
+    const chunks: Buffer[] = [];
 
-    doc.on("data", (chunk) => chunks.push(chunk));
-
-    doc.on("end", () => {});
+    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
 
     doc.fontSize(20).text("Cab Booking Receipt", { align: "center" });
 
@@ -62,7 +75,7 @@ export async function GET(
       });
     });
 
-   return new NextResponse(new Uint8Array(pdfBuffer), {
+    return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename=receipt-${ride.id}.pdf`,
