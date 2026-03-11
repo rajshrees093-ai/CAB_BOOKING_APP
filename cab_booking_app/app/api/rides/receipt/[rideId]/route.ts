@@ -4,8 +4,8 @@ import PDFDocument from "pdfkit";
 import { NextResponse } from "next/server";
 
 export async function GET(
-  req: Request,
-  { params }: { params: { rideId: string } }
+  request: Request,
+  context: { params: { rideId: string } }
 ) {
   try {
 
@@ -18,45 +18,25 @@ export async function GET(
       );
     }
 
-    const rideId = params.rideId;
+    const rideId = context.params.rideId;
 
-    console.log("Ride ID from URL:", rideId);
+    console.log("Ride ID received:", rideId);
 
-    // STEP 1: Get Supabase user id from users table
-    const { data: user, error: userError } = await supabase
-      .from("users")
-      .select("id")
-      .eq("clerk_id", userId)
-      .single();
-
-    if (userError || !user) {
-      console.log("User fetch error:", userError);
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 400 }
-      );
-    }
-
-    console.log("Supabase user id:", user.id);
-
-    // STEP 2: Fetch ride
-    const { data: ride, error: rideError } = await supabase
+    const { data: ride, error } = await supabase
       .from("rides")
       .select("*")
       .eq("id", rideId)
-      .maybeSingle();
+      .single();
 
-    console.log("Ride data:", ride);
-    console.log("Ride error:", rideError);
+    console.log("Ride fetched:", ride);
 
-    if (!ride) {
+    if (error || !ride) {
       return NextResponse.json(
         { error: "Ride not found" },
         { status: 404 }
       );
     }
 
-    // STEP 3: Generate PDF
     const doc = new PDFDocument();
 
     const chunks: Buffer[] = [];
