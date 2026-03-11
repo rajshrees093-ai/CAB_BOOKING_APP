@@ -4,8 +4,8 @@ import PDFDocument from "pdfkit";
 import { NextResponse } from "next/server";
 
 export async function GET(
-  request: Request,
-  context: { params: { rideId: string } }
+  req: Request,
+  { params }: { params: { rideId: string } }
 ) {
   try {
 
@@ -18,30 +18,33 @@ export async function GET(
       );
     }
 
-    const rideId = context.params.rideId;
+    const rideId = params.rideId;
 
-    console.log("Ride ID received:", rideId);
+    console.log("RideId from URL:", rideId);
 
+    // fetch ride
     const { data: ride, error } = await supabase
       .from("rides")
       .select("*")
       .eq("id", rideId)
+      .limit(1)
       .single();
 
-    console.log("Ride fetched:", ride);
+    console.log("Ride found:", ride);
 
-    if (error || !ride) {
+    if (!ride) {
       return NextResponse.json(
         { error: "Ride not found" },
         { status: 404 }
       );
     }
 
+    // Create PDF
     const doc = new PDFDocument();
 
-    const chunks: Buffer[] = [];
+    const buffers: Buffer[] = [];
 
-    doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+    doc.on("data", buffers.push.bind(buffers));
 
     doc.fontSize(20).text("Cab Booking Receipt", { align: "center" });
 
@@ -56,11 +59,7 @@ export async function GET(
 
     doc.end();
 
-    const pdfBuffer = await new Promise<Buffer>((resolve) => {
-      doc.on("end", () => {
-        resolve(Buffer.concat(chunks));
-      });
-    });
+    const pdfBuffer = Buffer.concat(buffers);
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {
