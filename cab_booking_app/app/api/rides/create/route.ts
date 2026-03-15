@@ -9,18 +9,27 @@ export async function POST(req: Request) {
     const { userId } = await auth();
 
     if (!userId) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Not authenticated" },
+        { status: 401 }
+      );
     }
 
     const body = await req.json();
 
-    // existing fields
     const { pickup, drop, ride_type } = body;
 
-    // generate ride id for receipt & history
+    if (!pickup || !drop) {
+      return NextResponse.json(
+        { error: "Pickup and drop locations required" },
+        { status: 400 }
+      );
+    }
+
+    // generate ride id
     const rideId = randomUUID();
 
-    // get uuid from users table
+    // get supabase user
     const { data: user, error: userError } = await supabase
       .from("users")
       .select("id, email, name")
@@ -28,10 +37,13 @@ export async function POST(req: Request) {
       .single();
 
     if (userError || !user) {
-      return NextResponse.json({ error: "User not found" }, { status: 400 });
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 400 }
+      );
     }
 
-    // ride metadata (for history + receipt)
+    // ride data
     const rideData = {
       id: rideId,
       rider_id: user.id,
@@ -39,35 +51,36 @@ export async function POST(req: Request) {
       drop_location: drop,
       ride_type: ride_type,
       fare: 200,
+
+      // IMPORTANT: drivers look for this field
       status: "requested",
 
-      // added for ride history
+      // extra metadata
       ride_status: "requested",
       payment_status: "pending",
 
-      // timestamps
       created_at: new Date().toISOString(),
 
-      // receipt support
       receipt_id: `REC-${Date.now()}`
     };
 
     // insert ride
-    const { data, error } = await supabase
+    const { data: ride, error } = await supabase
       .from("rides")
-      .insert(rideData)
-      .select();
+      .insert([rideData])
+      .select()
+      .single();
 
     if (error) {
-      console.log(error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.log("Insert error:", error);
+
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
     }
 
-    /*
-    Prepare receipt object (will be used later
-    when ride completes and payment is done)
-    */
-
+    // receipt preview
     const receipt = {
       receipt_id: rideData.receipt_id,
       ride_id: rideId,
@@ -83,19 +96,18 @@ export async function POST(req: Request) {
     };
 
     return NextResponse.json({
-      message: "Ride created",
-      data,
+      message: "Ride created successfully",
+      ride,
       receipt_preview: receipt
     });
 
   } catch (error) {
 
-    console.log(error);
+    console.log("Server error:", error);
 
     return NextResponse.json(
       { error: "Server error" },
       { status: 500 }
     );
-
   }
 }
