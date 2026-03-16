@@ -16,42 +16,44 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { rideId } = body;
 
-    if (!rideId) {
+    const { pickup, drop, ride_type } = body;
+
+    if (!pickup || !drop) {
       return NextResponse.json(
-        { error: "Ride ID required" },
+        { error: "Pickup and drop required" },
         { status: 400 }
       );
     }
 
-    // get driver uuid
-    const { data: driver, error: driverError } = await supabase
+    // find user in DB
+    const { data: user, error: userError } = await supabase
       .from("users")
       .select("id")
       .eq("clerk_id", userId)
       .single();
 
-    if (driverError || !driver) {
+    if (userError || !user) {
       return NextResponse.json(
-        { error: "Driver not found" },
+        { error: "User not found" },
         { status: 400 }
       );
     }
 
-    // update ride
     const { data, error } = await supabase
       .from("rides")
-      .update({
-        driver_id: driver.id,
-        status: "accepted"
+      .insert({
+        rider_id: user.id,
+        pickup_location: pickup,
+        drop_location: drop,
+        ride_type: ride_type,
+        fare: 200,
+        status: "requested"
       })
-      .eq("id", rideId)
       .select();
 
     if (error) {
       console.log(error);
-
       return NextResponse.json(
         { error: error.message },
         { status: 500 }
@@ -59,7 +61,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
-      message: "Ride accepted",
+      message: "Ride requested successfully",
       data
     });
 
