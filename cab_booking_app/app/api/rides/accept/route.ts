@@ -9,12 +9,23 @@ export async function POST(req: Request) {
     const { userId } = await auth();
 
     if (!userId) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Not authenticated" },
+        { status: 401 }
+      );
     }
 
-    const { rideId } = await req.json();
+    const body = await req.json();
+    const { rideId } = body;
 
-    // find driver uuid
+    if (!rideId) {
+      return NextResponse.json(
+        { error: "Ride ID required" },
+        { status: 400 }
+      );
+    }
+
+    // get driver uuid
     const { data: driver, error: driverError } = await supabase
       .from("users")
       .select("id")
@@ -24,30 +35,37 @@ export async function POST(req: Request) {
     if (driverError || !driver) {
       return NextResponse.json(
         { error: "Driver not found" },
-        { status: 404 }
+        { status: 400 }
       );
     }
 
-    const { error } = await supabase
+    // update ride
+    const { data, error } = await supabase
       .from("rides")
       .update({
         driver_id: driver.id,
         status: "accepted"
       })
-      .eq("id", rideId);
+      .eq("id", rideId)
+      .select();
 
     if (error) {
+      console.log(error);
+
       return NextResponse.json(
         { error: error.message },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ message: "Ride accepted 🚕" });
+    return NextResponse.json({
+      message: "Ride accepted",
+      data
+    });
 
   } catch (error) {
 
-    console.error(error);
+    console.log(error);
 
     return NextResponse.json(
       { error: "Server error" },
