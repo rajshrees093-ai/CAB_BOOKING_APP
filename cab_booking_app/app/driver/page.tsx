@@ -3,126 +3,83 @@
 import { useEffect, useState } from "react";
 import { UserButton } from "@clerk/nextjs";
 
-export default function DriverDashboard() {
+export default function DriverDashboard(){
 
-  const [rides, setRides] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rides,setRides] = useState<any[]>([]);
 
-  async function getRides() {
+  async function getRides(){
 
-    try {
+    const res = await fetch("/api/rides/available",{
+      cache:"no-store"
+    });
 
-      const res = await fetch("/api/rides/available", {
-        cache: "no-store"
-      });
+    const data = await res.json();
 
-      const data = await res.json();
-
-      // handle both response types
-      setRides(data.rides || data || []);
-
-      setLoading(false);
-
-    } catch (error) {
-
-      console.error("Error fetching rides:", error);
-      setLoading(false);
-
-    }
+    setRides(data.rides || []);
 
   }
 
-  useEffect(() => {
+  useEffect(()=>{
+
     getRides();
-  }, []);
 
-  async function acceptRide(rideId: string) {
+    const interval = setInterval(getRides,3000);
 
-    try {
+    return ()=>clearInterval(interval);
 
-      await fetch("/api/rides/accept", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ rideId })
-      });
+  },[]);
 
-      alert("Ride Accepted 🚕");
 
-      getRides();
+  async function acceptRide(rideId:string){
 
-    } catch (error) {
+    await fetch("/api/rides/accept",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({rideId})
+    });
 
-      console.error("Accept ride error:", error);
+    alert("Ride Accepted 🚕");
 
-    }
+    getRides();
 
   }
 
-  return (
+
+  return(
 
     <div className="min-h-screen bg-gray-100">
 
-      {/* Top Bar */}
-
-      <div className="flex justify-between items-center p-4 bg-white shadow">
-
-        <h1 className="text-xl font-bold">
-          Driver Dashboard
-        </h1>
-
-        <UserButton />
-
+      <div className="flex justify-between p-4 bg-white shadow">
+        <h1 className="text-xl font-bold">Driver Dashboard</h1>
+        <UserButton/>
       </div>
 
-      {/* Main Content */}
-
-      <div className="max-w-3xl mx-auto mt-8 px-4">
+      <div className="max-w-3xl mx-auto mt-8">
 
         <h2 className="text-lg font-semibold mb-4">
           Available Ride Requests
         </h2>
 
-        {loading && (
-          <p className="text-gray-500">Loading rides...</p>
+        {rides.length === 0 && (
+          <p>No rides available</p>
         )}
 
-        {!loading && rides.length === 0 && (
-          <p className="text-gray-500">
-            No ride requests available
-          </p>
-        )}
+        {rides.map((ride:any)=>(
+          
+          <div key={ride.id} className="bg-white p-4 mb-4 shadow rounded">
 
-        {rides.map((ride: any) => (
+            <p><b>Pickup:</b> {ride.pickup_location}</p>
+            <p><b>Drop:</b> {ride.drop_location}</p>
+            <p><b>Fare:</b> ₹{ride.fare}</p>
 
-          <div
-            key={ride.id}
-            className="bg-white p-5 mb-4 shadow-md rounded-lg border"
-          >
-
-            <div className="flex justify-between items-center">
-
-              <div>
-
-                <p className="font-semibold">
-                  {ride.pickup_location} → {ride.drop_location}
-                </p>
-
-                <p className="text-sm text-gray-500 mt-1">
-                  Status: {ride.status}
-                </p>
-
-              </div>
-
-              <button
-                onClick={() => acceptRide(ride.id)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
-              >
-                Accept Ride
-              </button>
-
-            </div>
+            <button
+              onClick={()=>acceptRide(ride.id)}
+              className="bg-green-600 text-white px-4 py-2 mt-2 rounded"
+            >
+              Accept Ride
+            </button>
 
           </div>
 

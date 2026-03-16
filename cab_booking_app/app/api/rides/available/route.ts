@@ -1,7 +1,8 @@
-import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 
 export async function GET() {
+
   try {
 
     const { data: rides, error } = await supabase
@@ -11,15 +12,23 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.log(error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+
+      console.error("Supabase error:", error);
+
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+
     }
 
-    return NextResponse.json({ rides });
+    return NextResponse.json({
+      rides: rides || []
+    });
 
   } catch (error) {
 
-    console.log(error);
+    console.error("Server error:", error);
 
     return NextResponse.json(
       { error: "Server error" },
@@ -27,4 +36,5 @@ export async function GET() {
     );
 
   }
+
 }
